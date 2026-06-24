@@ -4,7 +4,7 @@ export class MenuScene extends Phaser.Scene {
   constructor() { super('Menu'); }
 
   preload() {
-    this.load.image('chems', '/assets/chems.png');
+    this.load.image('chems', `${import.meta.env.BASE_URL}assets/chems.png`);
   }
 
   create() {

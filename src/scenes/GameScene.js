@@ -12,8 +12,8 @@ export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
 
   preload() {
-    this.load.image('chems', '/assets/chems.png');
-    this.load.image('mazo',  '/assets/mazo.png');
+    this.load.image('chems', `${import.meta.env.BASE_URL}assets/chems.png`);
+    this.load.image('mazo',  `${import.meta.env.BASE_URL}assets/mazo.png`);
   }
 
   create() {
