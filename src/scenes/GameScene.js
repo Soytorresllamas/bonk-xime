@@ -40,14 +40,11 @@ export class GameScene extends Phaser.Scene {
 
     this._qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this._eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this._kKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K);
     this._charging = false;
     this._chargeStartTime = 0;
 
     this._timeLeft = this._wave.timer;
-
-    this.input.on('pointerdown', (pointer) => {
-      this._handleClick(pointer.x, pointer.y);
-    });
 
     this.events.emit('waveChanged', this._waveNum);
     this.events.emit('timerChanged', this._timeLeft);
@@ -69,18 +66,15 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  _handleClick(px, py) {
+  _handleBonkKey() {
     if (!this._cheems || this._waveClear) return;
-    let target = null;
-    let minDist = 50;
-    this._blocks.forEach(block => {
-      const dist = Phaser.Math.Distance.Between(px, py, block.x, block.y);
-      if (dist < minDist && isAdjacent(this._cheems, block)) {
-        minDist = dist;
-        target = block;
-      }
-    });
-    if (target) this._bonkBlock(target);
+    const adjacent = this._blocks.filter(b => isAdjacent(this._cheems, b));
+    if (adjacent.length === 0) return;
+    const target = adjacent.reduce((best, b) =>
+      Phaser.Math.Distance.Between(this._cheems.x, this._cheems.y, b.x, b.y) <
+      Phaser.Math.Distance.Between(this._cheems.x, this._cheems.y, best.x, best.y) ? b : best
+    );
+    this._bonkBlock(target);
   }
 
   _bonkBlock(block) {
@@ -170,6 +164,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   _handleSpecialKeys() {
+    if (Phaser.Input.Keyboard.JustDown(this._kKey)) {
+      this._handleBonkKey();
+    }
+
     if (Phaser.Input.Keyboard.JustDown(this._qKey)) {
       if (this._energy.spend(CHAIN_COST)) {
         this._executeChainBonk();
