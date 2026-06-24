@@ -14,9 +14,9 @@ describe('ScoreSystem', () => {
     expect(earned).toBe(10); expect(s.score).toBe(10);
   });
 
-  it('addBlockScore: stone at wave 5 = 100 (hp:2 * 10 * wave:5)', () => {
+  it('addBlockScore: stone at wave 5 = 120 (hp:2 * 10 * 5 + scoreBonus:20)', () => {
     const earned = s.addBlockScore('stone', 5);
-    expect(earned).toBe(100); expect(s.score).toBe(100);
+    expect(earned).toBe(120); expect(s.score).toBe(120);
   });
 
   it('addBlockScore: diamond at wave 1 = 50 (hp:5 * 10 * 1)', () => {
@@ -38,6 +38,10 @@ describe('ScoreSystem', () => {
   it('addWaveBonus returns 0 when time <= 15', () => {
     const bonus = s.addWaveBonus(15);
     expect(bonus).toBe(0); expect(s.score).toBe(0);
+  });
+
+  it('addBlockScore throws on unknown type', () => {
+    expect(() => s.addBlockScore('banana', 1)).toThrow('Unknown block type: banana');
   });
 
   it('reset clears score and multiplier', () => {

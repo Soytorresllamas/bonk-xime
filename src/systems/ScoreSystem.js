@@ -7,10 +7,11 @@ export class ScoreSystem {
     this._multiplierTimer = null;
   }
 
-  // Returns points earned (after multiplier).
+  // Returns points earned (after multiplier). Throws on unknown block type.
   addBlockScore(blockType, waveNum) {
-    const hp = BLOCK_TYPES[blockType].hp;
-    const base = hp * 10 * waveNum;
+    const def = BLOCK_TYPES[blockType];
+    if (!def) throw new Error(`Unknown block type: ${blockType}`);
+    const base = (def.hp * 10 * waveNum) + (def.scoreBonus ?? 0);
     const earned = base * this.multiplier;
     this.score += earned;
     return earned;
@@ -33,7 +34,7 @@ export class ScoreSystem {
 
   getBest() {
     try {
-      return parseInt(globalThis.localStorage?.getItem('bonk_best') ?? '0', 10);
+      return parseInt(globalThis.localStorage?.getItem('bonk_best') ?? '0', 10) || 0;
     } catch { return 0; }
   }
 
