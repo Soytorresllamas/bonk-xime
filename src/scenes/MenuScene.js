@@ -53,5 +53,16 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('Game');
       this.scene.launch('UI');
     });
+
+    const instrStyle = {
+      fontFamily: 'Impact, Arial Black, sans-serif',
+      fontSize: '14px', color: '#aaaaaa',
+      stroke: '#000', strokeThickness: 2,
+      align: 'center',
+    };
+
+    this.add.text(width / 2, height - 22,
+      'WASD mover  ·  K bonk  ·  Q chain bonk (40⚡)  ·  mantén E power bonk (80⚡)',
+      instrStyle).setOrigin(0.5, 1);
   }
 }
