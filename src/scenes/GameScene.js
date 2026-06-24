@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { generateWave } from '../config/waves.js';
-import { tileToScreen, isoDepth, isAdjacent, getOrthogonalNeighbors } from '../utils/isomath.js';
+import { tileToScreen, isoDepth, isAdjacent, getOrthogonalNeighbors, TILE_W, TILE_H } from '../utils/isomath.js';
 import { Block } from '../entities/Block.js';
 import { Cheems } from '../entities/Cheems.js';
 import { EnergySystem, CHAIN_COST, POWER_COST } from '../systems/EnergySystem.js';
@@ -8,6 +8,8 @@ import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { spawnMemeText, spawnBlockParticles } from '../effects/MemeText.js';
 import { SoundFX } from '../effects/SoundFX.js';
 import { BLOCK_TYPES } from '../config/blocks.js';
+
+const BONK_COOLDOWN_MS = 250;
 
 export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
@@ -21,9 +23,12 @@ export class GameScene extends Phaser.Scene {
     this._blocks = [];
     this._waveNum = 1;
     this._waveClear = false;
+    this._targetBlock = null;
+    this._lastBonkTime = -BONK_COOLDOWN_MS;
 
     this._wave = generateWave(this._waveNum);
     this._computeOrigin();
+    this._drawBackground();
     this._spawnBlocks();
 
     this._cheems = new Cheems(
@@ -53,6 +58,23 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('blocksChanged', this._blocks.length);
   }
 
+  _drawBackground() {
+    const gfx = this.add.graphics().setDepth(-10);
+    const { width, height } = this.scale;
+    const hw = TILE_W / 2, hh = TILE_H / 2;
+    gfx.lineStyle(1, 0x2233aa, 0.12);
+    for (let col = -4; col < 22; col++) {
+      for (let row = -2; row < 20; row++) {
+        const x = (col - row) * hw + width / 2;
+        const y = (col + row) * hh + 80;
+        gfx.strokePoints([
+          { x, y: y - hh }, { x: x + hw, y },
+          { x, y: y + hh }, { x: x - hw, y }, { x, y: y - hh },
+        ]);
+      }
+    }
+  }
+
   _computeOrigin() {
     const { gridH } = this._wave;
     this._originX = this.scale.width / 2 + (gridH - 1) * 16;
@@ -61,8 +83,15 @@ export class GameScene extends Phaser.Scene {
 
   _spawnBlocks() {
     this._blocks = [];
-    this._wave.blocks.forEach(({ col, row, type }) => {
+    this._wave.blocks.forEach(({ col, row, type }, i) => {
       const block = new Block(this, col, row, type, this._originX, this._originY);
+      const finalY = block.y;
+      block.y = finalY - 90;
+      block.setAlpha(0);
+      this.tweens.add({
+        targets: block, y: finalY, alpha: 1,
+        duration: 280, delay: i * 18, ease: 'Back.easeOut',
+      });
       this._blocks.push(block);
     });
     this.events.emit('blocksChanged', this._blocks.length);
@@ -72,25 +101,38 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('blocksChanged', this._blocks.length);
   }
 
-  _handleBonkKey() {
-    if (!this._cheems || this._waveClear) return;
+  _updateBlockTarget() {
+    if (this._waveClear || !this._cheems) return;
     const adjacent = this._blocks.filter(b => isAdjacent(this._cheems, b));
-    if (adjacent.length === 0) return;
-    const target = adjacent.reduce((best, b) =>
+    const newTarget = adjacent.length === 0 ? null : adjacent.reduce((best, b) =>
       Phaser.Math.Distance.Between(this._cheems.x, this._cheems.y, b.x, b.y) <
       Phaser.Math.Distance.Between(this._cheems.x, this._cheems.y, best.x, best.y) ? b : best
     );
-    this._bonkBlock(target);
+    if (this._targetBlock !== newTarget) {
+      if (this._targetBlock && this._targetBlock.active) this._targetBlock.setTarget(false);
+      this._targetBlock = newTarget;
+      if (this._targetBlock) this._targetBlock.setTarget(true);
+    }
+  }
+
+  _handleBonkKey() {
+    if (!this._cheems || this._waveClear) return;
+    if (this.time.now - this._lastBonkTime < BONK_COOLDOWN_MS) return;
+    if (!this._targetBlock) return;
+    this._lastBonkTime = this.time.now;
+    this._bonkBlock(this._targetBlock);
   }
 
   _bonkBlock(block) {
     this._cheems.swingBat(() => {
+      if (!block.active) return;
       const { x, y, type, def } = block;
       const destroyed = block.bonk();
       this._energy.gain(def.energy);
       this.events.emit('energyChanged', this._energy.fraction);
 
       if (destroyed) {
+        if (this._targetBlock === block) this._targetBlock = null;
         this._blocks = this._blocks.filter(b => b !== block);
         this._emitBlocks();
         SoundFX.destroy();
@@ -109,9 +151,7 @@ export class GameScene extends Phaser.Scene {
           this._score.activateMultiplier(def.scoreMultiplier, def.multiplierDurationMs);
           spawnMemeText(this, x, y - 40, '×2 SCORE!!', '#00ccff');
         }
-        if (earned > 0) {
-          spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
-        }
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       } else {
         SoundFX.bonk();
         this.cameras.main.shake(40, 0.003);
@@ -142,6 +182,7 @@ export class GameScene extends Phaser.Scene {
       const { x, y, type, def } = block;
       const destroyed = block.bonk();
       if (destroyed) {
+        if (this._targetBlock === block) this._targetBlock = null;
         this._blocks = this._blocks.filter(b => b !== block);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
@@ -151,7 +192,6 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this._emitBlocks();
-
     spawnMemeText(this, this._cheems.x, this._cheems.y - 60, 'such chain, very wow', '#00ccff');
   }
 
@@ -169,6 +209,7 @@ export class GameScene extends Phaser.Scene {
       const { x, y, type, def } = block;
       const destroyed = block.bonk();
       if (destroyed) {
+        if (this._targetBlock === block) this._targetBlock = null;
         this._blocks = this._blocks.filter(b => b !== block);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
@@ -178,7 +219,6 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this._emitBlocks();
-
     spawnMemeText(this, this._cheems.x, this._cheems.y - 80, 'MEGA BONK', '#FF4400');
   }
 
@@ -219,6 +259,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   _onWaveCleared() {
+    if (this._targetBlock && this._targetBlock.active) this._targetBlock.setTarget(false);
+    this._targetBlock = null;
+
     const bonus = this._score.addWaveBonus(this._timeLeft);
     if (bonus > 0) {
       spawnMemeText(this, this.scale.width / 2, this.scale.height / 2, `WAVE BONUS +${bonus}!`, '#FFD700');
@@ -242,6 +285,8 @@ export class GameScene extends Phaser.Scene {
 
   _onGameOver() {
     this._waveClear = true;
+    if (this._targetBlock && this._targetBlock.active) this._targetBlock.setTarget(false);
+    this._targetBlock = null;
     this._score.saveBest();
 
     this.registry.set('gameOver', true);
@@ -269,6 +314,7 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     this._cheems.handleInput();
     this._handleSpecialKeys();
+    this._updateBlockTarget();
 
     if (this._waveClear) return;
 

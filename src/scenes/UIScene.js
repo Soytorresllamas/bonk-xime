@@ -60,6 +60,23 @@ export class UIScene extends Phaser.Scene {
       align: 'center',
     }).setOrigin(0.5).setAlpha(0).setDepth(3000);
 
+    // Pause overlay
+    this._pauseOverlay = this.add.container(0, 0).setAlpha(0).setDepth(4000);
+    const pauseBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.75);
+    const pauseTxt = this.add.text(width / 2, height / 2 - 20, 'PAUSA', {
+      fontFamily: 'Impact, sans-serif', fontSize: '72px',
+      color: '#FFD700', stroke: '#000', strokeThickness: 6,
+    }).setOrigin(0.5);
+    const pauseHint = this.add.text(width / 2, height / 2 + 50, 'ESC para continuar', {
+      fontFamily: 'Impact, sans-serif', fontSize: '22px',
+      color: '#ffffff', stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5);
+    this._pauseOverlay.add([pauseBg, pauseTxt, pauseHint]);
+
+    this._paused = false;
+    this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+
+    // Game events
     game.events.on('scoreChanged', score => {
       this._scoreTxt.setText(`SCORE: ${score.toLocaleString()}`);
     });
@@ -96,8 +113,23 @@ export class UIScene extends Phaser.Scene {
     });
   }
 
+  _togglePause() {
+    this._paused = !this._paused;
+    if (this._paused) {
+      this.scene.pause('Game');
+      this._pauseOverlay.setAlpha(1);
+    } else {
+      this.scene.resume('Game');
+      this._pauseOverlay.setAlpha(0);
+    }
+  }
+
   update(time, delta) {
-    if (this._isCharging) {
+    if (Phaser.Input.Keyboard.JustDown(this._escKey)) {
+      this._togglePause();
+    }
+
+    if (!this._paused && this._isCharging) {
       const w = Math.min(this._barW, (this._chargeBar.width || 0) + delta * (this._barW / 1500));
       this._chargeBar.setSize(w, 8);
     }

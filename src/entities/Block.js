@@ -25,6 +25,9 @@ export class Block extends Phaser.GameObjects.Container {
     this._gfx = scene.add.graphics();
     this.add(this._gfx);
 
+    this._hlGfx = scene.add.graphics();
+    this.add(this._hlGfx);
+
     if (this.def.hp > 1) {
       this._hpLabel = scene.add.text(0, -TILE_H * 0.6, String(this.hp), {
         fontFamily: 'Impact, sans-serif', fontSize: '14px',
@@ -60,6 +63,29 @@ export class Block extends Phaser.GameObjects.Container {
       { x: 0, y: -hh }, { x: hw, y: 0 },
       { x: 0, y: hh }, { x: -hw, y: 0 },
     ], true);
+  }
+
+  setTarget(active) {
+    if (active === this._isTarget) return;
+    this._isTarget = active;
+    if (active) {
+      const hw = TILE_W / 2, hh = TILE_H / 2;
+      this._hlGfx.clear();
+      this._hlGfx.lineStyle(2, 0xffffff, 1);
+      this._hlGfx.strokePoints([
+        { x: 0, y: -hh }, { x: hw, y: 0 },
+        { x: 0, y: hh }, { x: -hw, y: 0 }, { x: 0, y: -hh },
+      ]);
+      if (!this._hlTween) {
+        this._hlTween = this.scene.tweens.add({
+          targets: this._hlGfx, alpha: 0.25, duration: 280,
+          yoyo: true, repeat: -1,
+        });
+      }
+    } else {
+      this._hlGfx.clear().setAlpha(1);
+      if (this._hlTween) { this._hlTween.stop(); this._hlTween = null; }
+    }
   }
 
   bonk() {
