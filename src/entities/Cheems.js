@@ -52,6 +52,7 @@ export class Cheems extends Phaser.GameObjects.Container {
     if (this._getBlocks().some(b => b.col === newCol && b.row === newRow)) return;
     this.col = newCol;
     this.row = newRow;
+    if (dc !== 0) this._sprite.setFlipX(dc < 0);
     const { x, y } = tileToScreen(this.col, this.row, this._originX, this._originY);
     this.scene.tweens.add({ targets: this, x, y, duration: 80, ease: 'Power1' });
     this.setDepth(isoDepth(this.col, this.row) + 0.5);

@@ -25,6 +25,8 @@ export class GameScene extends Phaser.Scene {
     this._waveClear = false;
     this._targetBlock = null;
     this._lastBonkTime = -BONK_COOLDOWN_MS;
+    this._combo = 0;
+    this._comboResetTimer = null;
 
     this._wave = generateWave(this._waveNum);
     this._computeOrigin();
@@ -120,6 +122,13 @@ export class GameScene extends Phaser.Scene {
     if (this.time.now - this._lastBonkTime < BONK_COOLDOWN_MS) return;
     if (!this._targetBlock) return;
     this._lastBonkTime = this.time.now;
+    this._combo++;
+    this.events.emit('combo', this._combo);
+    if (this._comboResetTimer) this._comboResetTimer.remove();
+    this._comboResetTimer = this.time.delayedCall(1500, () => {
+      this._combo = 0;
+      this.events.emit('combo', 0);
+    });
     this._bonkBlock(this._targetBlock);
   }
 
