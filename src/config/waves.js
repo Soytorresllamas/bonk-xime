@@ -8,7 +8,7 @@ const WAVE_TIERS = [
 ];
 
 export function isDogWave(waveNum) {
-  return waveNum % 10 === 0;
+  return waveNum >= 1 && waveNum % 10 === 0;
 }
 
 export function getWaveTier(waveNum) {

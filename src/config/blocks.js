@@ -21,7 +21,7 @@ export const BLOCK_TYPES = {
   },
   diamond: {
     hp: 5, color: 0x007799, topColor: 0x00ccff,
-    energy: 10, scoreMultiplier: 2, multiplierDuration: 10000,
+    energy: 10, scoreMultiplier: 2, multiplierDurationMs: 10000,
     memeText: 'to the moon',
   },
 };

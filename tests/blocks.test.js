@@ -29,6 +29,6 @@ describe('BLOCK_TYPES', () => {
   it('trap has timerPenalty of 2', () => { expect(BLOCK_TYPES.trap.timerPenalty).toBe(2); });
   it('diamond has scoreMultiplier of 2 and duration 10000', () => {
     expect(BLOCK_TYPES.diamond.scoreMultiplier).toBe(2);
-    expect(BLOCK_TYPES.diamond.multiplierDuration).toBe(10000);
+    expect(BLOCK_TYPES.diamond.multiplierDurationMs).toBe(10000);
   });
 });
