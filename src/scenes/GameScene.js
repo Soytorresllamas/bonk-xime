@@ -54,8 +54,8 @@ export class GameScene extends Phaser.Scene {
 
   _computeOrigin() {
     const { gridH } = this._wave;
-    this._originX = 400 + (gridH - 1) * 16;
-    this._originY = 130;
+    this._originX = this.scale.width / 2 + (gridH - 1) * 16;
+    this._originY = 150;
   }
 
   _spawnBlocks() {
@@ -196,7 +196,7 @@ export class GameScene extends Phaser.Scene {
   _onWaveCleared() {
     const bonus = this._score.addWaveBonus(this._timeLeft);
     if (bonus > 0) {
-      spawnMemeText(this, 400, 300, `WAVE BONUS +${bonus}!`, '#FFD700');
+      spawnMemeText(this, this.scale.width / 2, this.scale.height / 2, `WAVE BONUS +${bonus}!`, '#FFD700');
       this.events.emit('scoreChanged', this._score.score);
     }
 
@@ -224,12 +224,13 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('bestScore', this._score.getBest());
     this.registry.set('finalWave', this._waveNum);
 
-    this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7).setDepth(5000);
-    this.add.text(400, 260, 'GAME OVER', {
+    const cx = this.scale.width / 2, cy = this.scale.height / 2;
+    this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.7).setDepth(5000);
+    this.add.text(cx, cy - 60, 'GAME OVER', {
       fontFamily: 'Impact, sans-serif', fontSize: '72px',
       color: '#ff4422', stroke: '#000', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(5001);
-    this.add.text(400, 340, `WAVE ${this._waveNum} · SCORE ${this._score.score.toLocaleString()}`, {
+    this.add.text(cx, cy + 20, `WAVE ${this._waveNum} · SCORE ${this._score.score.toLocaleString()}`, {
       fontFamily: 'Impact, sans-serif', fontSize: '24px',
       color: '#FFD700', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(5001);

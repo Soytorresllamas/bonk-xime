@@ -5,6 +5,7 @@ export class UIScene extends Phaser.Scene {
 
   create() {
     const game = this.scene.get('Game');
+    const { width, height } = this.scale;
 
     this._scoreTxt = this.add.text(16, 16, 'SCORE: 0', {
       fontFamily: 'Impact, sans-serif', fontSize: '22px',
@@ -16,18 +17,22 @@ export class UIScene extends Phaser.Scene {
       color: '#ffffff', stroke: '#000', strokeThickness: 2,
     });
 
-    this._timerTxt = this.add.text(784, 16, '60', {
+    this._timerTxt = this.add.text(width - 16, 16, '60', {
       fontFamily: 'Impact, sans-serif', fontSize: '36px',
       color: '#ffffff', stroke: '#000', strokeThickness: 3,
     }).setOrigin(1, 0);
 
-    const barX = 200, barY = 570, barW = 400, barH = 18;
-    this.add.text(400, 555, 'ENERGY', {
+    const barW = 480, barH = 18;
+    const barX = (width - barW) / 2;
+    const barY = height - 36;
+    this._barW = barW;
+
+    this.add.text(width / 2, barY - 2, 'ENERGY', {
       fontFamily: 'Impact, sans-serif', fontSize: '12px',
       color: '#aaa',
     }).setOrigin(0.5, 1);
 
-    this._energyBg = this.add.rectangle(barX + barW / 2, barY, barW, barH, 0x222222)
+    this._energyBg = this.add.rectangle(width / 2, barY, barW, barH, 0x222222)
       .setOrigin(0.5, 0);
     this._energyFill = this.add.rectangle(barX, barY, 0, barH, 0xDAA520)
       .setOrigin(0, 0);
@@ -41,10 +46,10 @@ export class UIScene extends Phaser.Scene {
     this.add.rectangle(barX + barW * 0.4, barY, 2, barH, 0x00ccff).setOrigin(0.5, 0);
     this.add.rectangle(barX + barW * 0.8, barY, 2, barH, 0xFF4400).setOrigin(0.5, 0);
 
-    this._chargeBar = this.add.rectangle(400, 540, 0, 8, 0xff4400)
+    this._chargeBar = this.add.rectangle(width / 2, barY - 14, 0, 8, 0xff4400)
       .setOrigin(0.5, 0).setAlpha(0);
 
-    this._dogeBanner = this.add.text(400, 300, 'DOGE WAVE\nWOW.', {
+    this._dogeBanner = this.add.text(width / 2, height / 2, 'DOGE WAVE\nWOW.', {
       fontFamily: 'Impact, sans-serif', fontSize: '64px',
       color: '#DAA520', stroke: '#000', strokeThickness: 6,
       align: 'center',
@@ -61,7 +66,7 @@ export class UIScene extends Phaser.Scene {
       this._timerTxt.setStyle({ color: secs <= 10 ? '#ff4422' : '#ffffff' });
     });
     game.events.on('energyChanged', fraction => {
-      this._energyFill.setSize(400 * fraction, 18);
+      this._energyFill.setSize(this._barW * fraction, 18);
     });
     game.events.on('charging', isCharging => {
       this._chargeBar.setAlpha(isCharging ? 1 : 0).setSize(0, 8);
@@ -78,7 +83,7 @@ export class UIScene extends Phaser.Scene {
 
   update(time, delta) {
     if (this._isCharging) {
-      const w = Math.min(400, (this._chargeBar.width || 0) + delta * (400 / 1500));
+      const w = Math.min(this._barW, (this._chargeBar.width || 0) + delta * (this._barW / 1500));
       this._chargeBar.setSize(w, 8);
     }
   }
