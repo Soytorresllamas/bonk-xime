@@ -4,6 +4,7 @@ import { tileToScreen, isoDepth, isAdjacent, getOrthogonalNeighbors } from '../u
 import { Block } from '../entities/Block.js';
 import { Cheems } from '../entities/Cheems.js';
 import { EnergySystem, CHAIN_COST, POWER_COST } from '../systems/EnergySystem.js';
+import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { spawnMemeText, spawnBlockParticles } from '../effects/MemeText.js';
 import { BLOCK_TYPES } from '../config/blocks.js';
 
@@ -16,7 +17,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    // Reset all state for restarts
+    this._blocks = [];
     this._waveNum = 1;
+    this._waveClear = false;
+
     this._wave = generateWave(this._waveNum);
     this._computeOrigin();
     this._spawnBlocks();
@@ -31,15 +36,23 @@ export class GameScene extends Phaser.Scene {
     );
 
     this._energy = new EnergySystem(100);
+    this._score  = new ScoreSystem();
 
     this._qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this._eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this._charging = false;
     this._chargeStartTime = 0;
 
+    this._timeLeft = this._wave.timer;
+
     this.input.on('pointerdown', (pointer) => {
       this._handleClick(pointer.x, pointer.y);
     });
+
+    this.events.emit('waveChanged', this._waveNum);
+    this.events.emit('timerChanged', this._timeLeft);
+    this.events.emit('energyChanged', this._energy.fraction);
+    this.events.emit('scoreChanged', this._score.score);
   }
 
   _computeOrigin() {
@@ -57,7 +70,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   _handleClick(px, py) {
-    if (!this._cheems) return;
+    if (!this._cheems || this._waveClear) return;
     let target = null;
     let minDist = 50;
     this._blocks.forEach(block => {
@@ -76,10 +89,26 @@ export class GameScene extends Phaser.Scene {
       const destroyed = block.bonk();
       this._energy.gain(def.energy);
       this.events.emit('energyChanged', this._energy.fraction);
+
       if (destroyed) {
         this._blocks = this._blocks.filter(b => b !== block);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
+
+        const earned = this._score.addBlockScore(type, this._waveNum);
+        this.events.emit('scoreChanged', this._score.score);
+
+        if (def.timerPenalty) {
+          this._timeLeft = Math.max(0, this._timeLeft - def.timerPenalty);
+          spawnMemeText(this, x, y - 40, `-${def.timerPenalty}s`, '#ff4422');
+        }
+        if (def.scoreMultiplier) {
+          this._score.activateMultiplier(def.scoreMultiplier, def.multiplierDurationMs);
+          spawnMemeText(this, x, y - 40, '×2 SCORE!!', '#00ccff');
+        }
+        if (earned > 0) {
+          spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
+        }
       } else {
         spawnMemeText(this, x, y - 20, 'bonk', '#ffffff');
       }
@@ -108,6 +137,9 @@ export class GameScene extends Phaser.Scene {
         this._blocks = this._blocks.filter(b => b !== block);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
+        const earned = this._score.addBlockScore(type, this._waveNum);
+        this.events.emit('scoreChanged', this._score.score);
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       }
     });
 
@@ -127,6 +159,9 @@ export class GameScene extends Phaser.Scene {
         this._blocks = this._blocks.filter(b => b !== block);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
+        const earned = this._score.addBlockScore(type, this._waveNum);
+        this.events.emit('scoreChanged', this._score.score);
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       }
     });
 
@@ -160,8 +195,70 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  update() {
+  _onWaveCleared() {
+    const bonus = this._score.addWaveBonus(this._timeLeft);
+    if (bonus > 0) {
+      spawnMemeText(this, 400, 300, `WAVE BONUS +${bonus}!`, '#FFD700');
+      this.events.emit('scoreChanged', this._score.score);
+    }
+
+    this._waveNum += 1;
+    this._wave = generateWave(this._waveNum);
+    this._computeOrigin();
+
+    this.time.delayedCall(800, () => {
+      this._spawnBlocks();
+      this._timeLeft = this._wave.timer;
+      this._waveClear = false;
+      this._energy.reset();
+      this.events.emit('waveChanged', this._waveNum);
+      this.events.emit('energyChanged', 0);
+      if (this._wave.isDoge) this.events.emit('dogWave');
+    });
+  }
+
+  _onGameOver() {
+    this._waveClear = true;
+    this._score.saveBest();
+
+    this.registry.set('gameOver', true);
+    this.registry.set('finalScore', this._score.score);
+    this.registry.set('bestScore', this._score.getBest());
+    this.registry.set('finalWave', this._waveNum);
+
+    this.add.rectangle(400, 300, 800, 600, 0x000000, 0.7).setDepth(5000);
+    this.add.text(400, 260, 'GAME OVER', {
+      fontFamily: 'Impact, sans-serif', fontSize: '72px',
+      color: '#ff4422', stroke: '#000', strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(5001);
+    this.add.text(400, 340, `WAVE ${this._waveNum} · SCORE ${this._score.score.toLocaleString()}`, {
+      fontFamily: 'Impact, sans-serif', fontSize: '24px',
+      color: '#FFD700', stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(5001);
+
+    this.time.delayedCall(2000, () => {
+      this.scene.stop('UI');
+      this.scene.start('Menu');
+    });
+  }
+
+  update(time, delta) {
     this._cheems.handleInput();
     this._handleSpecialKeys();
+
+    if (this._waveClear) return;
+
+    this._timeLeft -= delta / 1000;
+    this.events.emit('timerChanged', Math.max(0, this._timeLeft));
+
+    if (this._blocks.length === 0) {
+      this._waveClear = true;
+      this._onWaveCleared();
+      return;
+    }
+
+    if (this._timeLeft <= 0) {
+      this._onGameOver();
+    }
   }
 }

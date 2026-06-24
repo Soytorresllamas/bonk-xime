@@ -26,8 +26,10 @@ export class MenuScene extends Phaser.Scene {
     if (isGameOver) {
       const score = this.registry.get('finalScore') ?? 0;
       const best  = this.registry.get('bestScore')  ?? 0;
-      this.add.text(width / 2, height - 200,
-        `very gg. such score: ${score.toLocaleString()}\nmuch best: ${best.toLocaleString()}\nwow.`, {
+      const wave  = this.registry.get('finalWave')  ?? 1;
+
+      this.add.text(width / 2, height - 220,
+        `WAVE ${wave}\nscore: ${score.toLocaleString()}\nbest: ${best.toLocaleString()}\nvery gg. wow.`, {
           fontFamily: 'Impact, Arial Black, sans-serif',
           fontSize: '22px', color: '#ff4422',
           stroke: '#000', strokeThickness: 3,
@@ -36,7 +38,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     const btnLabel = isGameOver ? 'BONK AGAIN' : 'SUCH START';
-    const btn = this.add.text(width / 2, height - 80, btnLabel, {
+    const btn = this.add.text(width / 2, height - 60, btnLabel, {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '32px', color: '#ffffff',
       stroke: '#000', strokeThickness: 4,
