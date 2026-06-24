@@ -17,6 +17,11 @@ export class UIScene extends Phaser.Scene {
       color: '#ffffff', stroke: '#000', strokeThickness: 2,
     });
 
+    this._blocksTxt = this.add.text(16, 68, '', {
+      fontFamily: 'Impact, sans-serif', fontSize: '14px',
+      color: '#aaaaaa', stroke: '#000', strokeThickness: 2,
+    });
+
     this._timerTxt = this.add.text(width - 16, 16, '60', {
       fontFamily: 'Impact, sans-serif', fontSize: '36px',
       color: '#ffffff', stroke: '#000', strokeThickness: 3,
@@ -65,8 +70,18 @@ export class UIScene extends Phaser.Scene {
       this._timerTxt.setText(String(Math.ceil(secs)));
       this._timerTxt.setStyle({ color: secs <= 10 ? '#ff4422' : '#ffffff' });
     });
+    game.events.on('blocksChanged', count => {
+      this._blocksTxt.setText(`${count} bloque${count !== 1 ? 's' : ''}`);
+    });
     game.events.on('energyChanged', fraction => {
       this._energyFill.setSize(this._barW * fraction, 18);
+    });
+    game.events.on('noEnergy', () => {
+      this.tweens.add({
+        targets: this._energyFill,
+        alpha: 0.2, duration: 60, yoyo: true, repeat: 2,
+        onComplete: () => this._energyFill.setAlpha(1),
+      });
     });
     game.events.on('charging', isCharging => {
       this._chargeBar.setAlpha(isCharging ? 1 : 0).setSize(0, 8);

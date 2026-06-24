@@ -21,6 +21,13 @@ export class Cheems extends Phaser.GameObjects.Container {
     this.setDepth(isoDepth(col, row) + 0.5);
     scene.add.existing(this);
 
+    // Idle bounce — the sprite bobs up/down independently of the container
+    scene.tweens.add({
+      targets: this._sprite,
+      y: -26, duration: 600, ease: 'Sine.easeInOut',
+      yoyo: true, repeat: -1,
+    });
+
     this._cursors = scene.input.keyboard.addKeys({
       up:    Phaser.Input.Keyboard.KeyCodes.W,
       down:  Phaser.Input.Keyboard.KeyCodes.S,

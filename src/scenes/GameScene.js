@@ -6,6 +6,7 @@ import { Cheems } from '../entities/Cheems.js';
 import { EnergySystem, CHAIN_COST, POWER_COST } from '../systems/EnergySystem.js';
 import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { spawnMemeText, spawnBlockParticles } from '../effects/MemeText.js';
+import { SoundFX } from '../effects/SoundFX.js';
 import { BLOCK_TYPES } from '../config/blocks.js';
 
 export class GameScene extends Phaser.Scene {
@@ -17,7 +18,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    // Reset all state for restarts
     this._blocks = [];
     this._waveNum = 1;
     this._waveClear = false;
@@ -50,6 +50,7 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('timerChanged', this._timeLeft);
     this.events.emit('energyChanged', this._energy.fraction);
     this.events.emit('scoreChanged', this._score.score);
+    this.events.emit('blocksChanged', this._blocks.length);
   }
 
   _computeOrigin() {
@@ -64,6 +65,11 @@ export class GameScene extends Phaser.Scene {
       const block = new Block(this, col, row, type, this._originX, this._originY);
       this._blocks.push(block);
     });
+    this.events.emit('blocksChanged', this._blocks.length);
+  }
+
+  _emitBlocks() {
+    this.events.emit('blocksChanged', this._blocks.length);
   }
 
   _handleBonkKey() {
@@ -86,6 +92,9 @@ export class GameScene extends Phaser.Scene {
 
       if (destroyed) {
         this._blocks = this._blocks.filter(b => b !== block);
+        this._emitBlocks();
+        SoundFX.destroy();
+        this.cameras.main.shake(80, 0.006);
         spawnMemeText(this, x, y - 20, def.memeText);
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
 
@@ -104,6 +113,8 @@ export class GameScene extends Phaser.Scene {
           spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
         }
       } else {
+        SoundFX.bonk();
+        this.cameras.main.shake(40, 0.003);
         spawnMemeText(this, x, y - 20, 'bonk', '#ffffff');
       }
     });
@@ -124,6 +135,9 @@ export class GameScene extends Phaser.Scene {
       if (nb) toClear.push(nb);
     });
 
+    SoundFX.chain();
+    this.cameras.main.shake(120, 0.009);
+
     toClear.forEach(block => {
       const { x, y, type, def } = block;
       const destroyed = block.bonk();
@@ -136,6 +150,7 @@ export class GameScene extends Phaser.Scene {
         if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       }
     });
+    this._emitBlocks();
 
     spawnMemeText(this, this._cheems.x, this._cheems.y - 60, 'such chain, very wow', '#00ccff');
   }
@@ -145,6 +160,10 @@ export class GameScene extends Phaser.Scene {
     const inRange = this._blocks.filter(b =>
       Math.abs(b.col - col) <= 1 && Math.abs(b.row - row) <= 1
     );
+
+    SoundFX.power();
+    this.cameras.main.shake(220, 0.014);
+    this.cameras.main.flash(200, 255, 100, 0, true);
 
     inRange.forEach(block => {
       const { x, y, type, def } = block;
@@ -158,9 +177,9 @@ export class GameScene extends Phaser.Scene {
         if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       }
     });
+    this._emitBlocks();
 
     spawnMemeText(this, this._cheems.x, this._cheems.y - 80, 'MEGA BONK', '#FF4400');
-    this.cameras.main.flash(200, 255, 100, 0, true);
   }
 
   _handleSpecialKeys() {
@@ -172,6 +191,9 @@ export class GameScene extends Phaser.Scene {
       if (this._energy.spend(CHAIN_COST)) {
         this._executeChainBonk();
         this.events.emit('energyChanged', this._energy.fraction);
+      } else {
+        SoundFX.noEnergy();
+        this.events.emit('noEnergy');
       }
     }
 
@@ -180,6 +202,9 @@ export class GameScene extends Phaser.Scene {
         this._charging = true;
         this._chargeStartTime = this.time.now;
         this.events.emit('charging', true);
+      } else {
+        SoundFX.noEnergy();
+        this.events.emit('noEnergy');
       }
     }
     if (this._charging && !this._eKey.isDown) {
