@@ -46,10 +46,10 @@ describe('generateWave', () => {
     }
   });
 
-  it('wave 10 (doge): all blocks are doge, timer 30, grid 5x4, isDoge true', () => {
+  it('wave 10 (doge): all blocks are doge, timer scales 20%/wave, grid 5x4, isDoge true', () => {
     const w = generateWave(10);
     expect(w.isDoge).toBe(true);
-    expect(w.timer).toBe(30);
+    expect(w.timer).toBe(Math.min(Math.round(30 * (1 + 9 * 0.2)), 120)); // 84
     expect(w.gridW).toBe(5); expect(w.gridH).toBe(4);
     expect(w.blocks).toHaveLength(20);
     w.blocks.forEach(b => expect(b.type).toBe('doge'));

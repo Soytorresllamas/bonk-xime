@@ -80,6 +80,12 @@ export class UIScene extends Phaser.Scene {
       color: '#ffffff', stroke: '#000', strokeThickness: 7,
     }).setOrigin(0.5).setAlpha(0).setDepth(2800);
 
+    // — NEW BEST banner
+    this._newBestTxt = this.add.text(width / 2, height / 2 + 130, '✨ NEW BEST! ✨', {
+      fontFamily: 'Impact, sans-serif', fontSize: '38px',
+      color: '#FFD700', stroke: '#000', strokeThickness: 5,
+    }).setOrigin(0.5).setAlpha(0).setDepth(2600);
+
     // — Wave clear celebration
     this._waveClearTxt = this.add.text(width / 2, height / 2 + 50, 'WAVE CLEAR!', {
       fontFamily: 'Impact, sans-serif', fontSize: '68px',
@@ -106,6 +112,8 @@ export class UIScene extends Phaser.Scene {
     this._pauseOverlay.add([pauseBg, pauseTxt, pauseHint]);
 
     this._paused = false;
+    this._newBestShown = false;
+    this._lastTimerCeil = null;
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     // — Event listeners
@@ -114,6 +122,10 @@ export class UIScene extends Phaser.Scene {
       const best = readBest();
       if (score > 0 && score >= best) {
         this._bestTxt.setText(`BEST: ${score.toLocaleString()}`).setStyle({ color: '#FFD700' });
+        if (!this._newBestShown) {
+          this._newBestShown = true;
+          this._showNewBest();
+        }
       }
     });
     game.events.on('waveChanged', wave => {
@@ -121,8 +133,14 @@ export class UIScene extends Phaser.Scene {
       this._showWaveBanner(`WAVE ${wave}`);
     });
     game.events.on('timerChanged', secs => {
-      this._timerTxt.setText(String(Math.ceil(secs)));
+      const ceiled = Math.ceil(secs);
+      this._timerTxt.setText(String(ceiled));
       this._timerTxt.setStyle({ color: secs <= 10 ? '#ff4422' : '#ffffff' });
+      if (secs <= 10 && ceiled !== this._lastTimerCeil) {
+        this._lastTimerCeil = ceiled;
+        this._timerTxt.setScale(1.35);
+        this.tweens.add({ targets: this._timerTxt, scale: 1, duration: 220, ease: 'Back.easeOut' });
+      }
     });
     game.events.on('blocksChanged', count => {
       this._blocksTxt.setText(`${count} bloque${count !== 1 ? 's' : ''}`);
@@ -148,6 +166,13 @@ export class UIScene extends Phaser.Scene {
     });
     game.events.on('combo', combo => this._showCombo(combo));
     game.events.on('waveClear', () => this._showWaveClear());
+    game.events.on('timerPenalty', () => {
+      this.tweens.add({
+        targets: this._timerTxt, alpha: 0.15, duration: 70,
+        yoyo: true, repeat: 3,
+        onComplete: () => { if (this._timerTxt.active) this._timerTxt.setAlpha(1); },
+      });
+    });
     game.events.on('multiplierActive', durationMs => {
       this.tweens.killTweensOf(this._multiBadge);
       this._multiBadge.setAlpha(1).setScale(1);
@@ -159,6 +184,17 @@ export class UIScene extends Phaser.Scene {
         this.tweens.killTweensOf(this._multiBadge);
         this.tweens.add({ targets: this._multiBadge, alpha: 0, duration: 400 });
       });
+    });
+  }
+
+  _showNewBest() {
+    this.tweens.killTweensOf(this._newBestTxt);
+    this._newBestTxt.setAlpha(1).setScale(0.6);
+    this.tweens.add({
+      targets: this._newBestTxt, scale: 1, duration: 300, ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({ targets: this._newBestTxt, alpha: 0, duration: 800, delay: 1500 });
+      },
     });
   }
 

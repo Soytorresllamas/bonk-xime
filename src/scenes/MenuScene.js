@@ -24,17 +24,34 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     if (isGameOver) {
-      const score = this.registry.get('finalScore') ?? 0;
-      const best  = this.registry.get('bestScore')  ?? 0;
-      const wave  = this.registry.get('finalWave')  ?? 1;
+      const score = this.registry.get('finalScore')  ?? 0;
+      const best  = this.registry.get('bestScore')   ?? 0;
+      const wave  = this.registry.get('finalWave')   ?? 1;
+      const top5  = this.registry.get('top5Scores')  ?? [];
 
-      this.add.text(width / 2, height - 220,
-        `WAVE ${wave}\nscore: ${score.toLocaleString()}\nbest: ${best.toLocaleString()}\nvery gg. wow.`, {
+      const newBest = score >= best && score > 0;
+      this.add.text(width / 2, height - 230,
+        `WAVE ${wave}  ·  ${score.toLocaleString()} pts\n` +
+        (newBest ? '✨ NEW BEST! ✨' : `best: ${best.toLocaleString()}`) +
+        '\nvery gg. wow.', {
           fontFamily: 'Impact, Arial Black, sans-serif',
-          fontSize: '22px', color: '#ff4422',
-          stroke: '#000', strokeThickness: 3,
-          align: 'center',
+          fontSize: '22px', color: newBest ? '#FFD700' : '#ff4422',
+          stroke: '#000', strokeThickness: 3, align: 'center',
         }).setOrigin(0.5);
+
+      if (top5.length > 0) {
+        this.add.text(width - 24, 120, 'TOP BONKERS', {
+          fontFamily: 'Impact, Arial Black, sans-serif', fontSize: '15px',
+          color: '#FFD700', stroke: '#000', strokeThickness: 2,
+        }).setOrigin(1, 0);
+        top5.forEach((sc, i) => {
+          this.add.text(width - 24, 142 + i * 26, `${i + 1}. ${sc.toLocaleString()}`, {
+            fontFamily: 'Impact, Arial Black, sans-serif', fontSize: '15px',
+            color: i === 0 ? '#FFD700' : '#aaaaaa',
+            stroke: '#000', strokeThickness: 2,
+          }).setOrigin(1, 0);
+        });
+      }
     }
 
     const btnLabel = isGameOver ? 'BONK AGAIN' : 'SUCH START';

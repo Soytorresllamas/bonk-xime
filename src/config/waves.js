@@ -21,7 +21,8 @@ export function generateWave(waveNum) {
     for (let row = 0; row < 4; row++)
       for (let col = 0; col < 5; col++)
         blocks.push({ col, row, type: 'doge' });
-    return { blocks, timer: 30, gridW: 5, gridH: 4, isDoge: true };
+    const dogeTimer = Math.min(Math.round(30 * (1 + (waveNum - 1) * 0.2)), 120);
+  return { blocks, timer: dogeTimer, gridW: 5, gridH: 4, isDoge: true };
   }
 
   const tier = getWaveTier(waveNum);
@@ -30,5 +31,6 @@ export function generateWave(waveNum) {
     for (let col = 0; col < tier.gridW; col++)
       blocks.push({ col, row, type: tier.types[Math.floor(Math.random() * tier.types.length)] });
 
-  return { blocks, timer: tier.timer, gridW: tier.gridW, gridH: tier.gridH, isDoge: false };
+  const timer = Math.min(Math.round(tier.timer * (1 + (waveNum - 1) * 0.2)), 120);
+  return { blocks, timer, gridW: tier.gridW, gridH: tier.gridH, isDoge: false };
 }

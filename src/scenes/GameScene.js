@@ -10,6 +10,7 @@ import { SoundFX } from '../effects/SoundFX.js';
 import { BLOCK_TYPES } from '../config/blocks.js';
 
 const BONK_COOLDOWN_MS = 250;
+const EARN_COLORS = { wood: '#aaffaa', stone: '#ffffff', iron: '#FFD700', doge: '#DAA520', trap: '#ff6644', diamond: '#00ccff' };
 
 export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
@@ -155,13 +156,14 @@ export class GameScene extends Phaser.Scene {
         if (def.timerPenalty) {
           this._timeLeft = Math.max(0, this._timeLeft - def.timerPenalty);
           spawnMemeText(this, x, y - 40, `-${def.timerPenalty}s`, '#ff4422');
+          this.events.emit('timerPenalty');
         }
         if (def.scoreMultiplier) {
           this._score.activateMultiplier(def.scoreMultiplier, def.multiplierDurationMs);
           spawnMemeText(this, x, y - 40, '×2 SCORE!!', '#00ccff');
           this.events.emit('multiplierActive', def.multiplierDurationMs);
         }
-        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, EARN_COLORS[type] ?? '#aaffaa');
       } else {
         SoundFX.bonk();
         this.cameras.main.shake(40, 0.003);
@@ -198,7 +200,7 @@ export class GameScene extends Phaser.Scene {
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
         const earned = this._score.addBlockScore(type, this._waveNum);
         this.events.emit('scoreChanged', this._score.score);
-        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, EARN_COLORS[type] ?? '#aaffaa');
       }
     });
     this._emitBlocks();
@@ -225,7 +227,7 @@ export class GameScene extends Phaser.Scene {
         spawnBlockParticles(this, x, y, BLOCK_TYPES[type].topColor);
         const earned = this._score.addBlockScore(type, this._waveNum);
         this.events.emit('scoreChanged', this._score.score);
-        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
+        if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, EARN_COLORS[type] ?? '#aaffaa');
       }
     });
     this._emitBlocks();
@@ -304,6 +306,7 @@ export class GameScene extends Phaser.Scene {
     this.registry.set('finalScore', this._score.score);
     this.registry.set('bestScore', this._score.getBest());
     this.registry.set('finalWave', this._waveNum);
+    this.registry.set('top5Scores', this._score.getTop5());
 
     const cx = this.scale.width / 2, cy = this.scale.height / 2;
     this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.7).setDepth(5000);

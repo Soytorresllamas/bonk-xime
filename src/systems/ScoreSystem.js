@@ -40,9 +40,20 @@ export class ScoreSystem {
 
   saveBest() {
     try {
-      if (this.score > this.getBest())
-        globalThis.localStorage?.setItem('bonk_best', String(this.score));
+      const top5 = this.getTop5();
+      top5.push(this.score);
+      top5.sort((a, b) => b - a);
+      const trimmed = top5.slice(0, 5);
+      globalThis.localStorage?.setItem('bonk_best', String(trimmed[0] ?? 0));
+      globalThis.localStorage?.setItem('bonk_top5', JSON.stringify(trimmed));
     } catch { /* no-op in non-browser */ }
+  }
+
+  getTop5() {
+    try {
+      return JSON.parse(globalThis.localStorage?.getItem('bonk_top5') ?? '[]')
+        .map(Number).filter(n => !isNaN(n));
+    } catch { return []; }
   }
 
   reset() {

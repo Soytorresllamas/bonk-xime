@@ -39,6 +39,21 @@ export class Block extends Phaser.GameObjects.Container {
     this.setDepth(isoDepth(col, row));
     this._draw();
 
+    if (this.type === 'diamond') {
+      [
+        { x: 0,              y: -TILE_H * 0.85 },
+        { x:  TILE_W * 0.38, y: -TILE_H * 0.15 },
+        { x: -TILE_W * 0.38, y: -TILE_H * 0.15 },
+      ].forEach(({ x, y }, i) => {
+        const s = scene.add.graphics();
+        s.fillStyle(0xffffff, 0.9);
+        s.fillCircle(0, 0, 2);
+        s.setPosition(x, y);
+        this.add(s);
+        scene.tweens.add({ targets: s, alpha: 0, scale: 0, duration: 500, yoyo: true, repeat: -1, delay: i * 220 });
+      });
+    }
+
     if (this.type === 'trap') {
       const warn = scene.add.text(0, -TILE_H * 0.9, '⚠', {
         fontFamily: 'sans-serif', fontSize: '14px',
