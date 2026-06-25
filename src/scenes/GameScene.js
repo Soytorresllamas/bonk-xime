@@ -159,6 +159,7 @@ export class GameScene extends Phaser.Scene {
         if (def.scoreMultiplier) {
           this._score.activateMultiplier(def.scoreMultiplier, def.multiplierDurationMs);
           spawnMemeText(this, x, y - 40, '×2 SCORE!!', '#00ccff');
+          this.events.emit('multiplierActive', def.multiplierDurationMs);
         }
         if (earned > 0) spawnMemeText(this, x + 20, y - 40, `+${earned}`, '#aaffaa');
       } else {
@@ -270,6 +271,7 @@ export class GameScene extends Phaser.Scene {
   _onWaveCleared() {
     if (this._targetBlock && this._targetBlock.active) this._targetBlock.setTarget(false);
     this._targetBlock = null;
+    this.events.emit('waveClear');
 
     const bonus = this._score.addWaveBonus(this._timeLeft);
     if (bonus > 0) {

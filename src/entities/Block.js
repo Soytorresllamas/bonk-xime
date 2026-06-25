@@ -38,6 +38,16 @@ export class Block extends Phaser.GameObjects.Container {
 
     this.setDepth(isoDepth(col, row));
     this._draw();
+
+    if (this.type === 'trap') {
+      const warn = scene.add.text(0, -TILE_H * 0.9, '⚠', {
+        fontFamily: 'sans-serif', fontSize: '14px',
+        color: '#ffff00', stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5, 1);
+      this.add(warn);
+      scene.tweens.add({ targets: warn, alpha: 0.15, duration: 350, yoyo: true, repeat: -1 });
+    }
+
     scene.add.existing(this);
   }
 
@@ -101,6 +111,17 @@ export class Block extends Phaser.GameObjects.Container {
       targets: this, alpha: 0.3, duration: 60,
       yoyo: true, onComplete: () => { if (this.active) this.setAlpha(1); },
     });
+    this.scene.tweens.add({
+      targets: this, scaleX: 1.25, scaleY: 0.75, duration: 70,
+      yoyo: true, ease: 'Power2',
+      onComplete: () => { if (this.active) { this.scaleX = 1; this.scaleY = 1; } },
+    });
+    if (this.hp === 1 && !this._deathShake) {
+      this._deathShake = this.scene.tweens.add({
+        targets: this._gfx, x: { from: -2, to: 2 },
+        duration: 80, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+    }
     return false;
   }
 }

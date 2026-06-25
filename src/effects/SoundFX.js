@@ -23,4 +23,5 @@ export const SoundFX = {
   chain()   { play(440, 110, 0.22, 'square', 0.3); },
   power()   { play(600, 50,  0.35, 'sawtooth', 0.4); },
   noEnergy(){ play(120, 100, 0.08, 'sine', 0.15); },
+  step()    { play(200, 160, 0.05, 'sine', 0.04); },
 };

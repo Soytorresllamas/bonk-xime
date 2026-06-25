@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { tileToScreen, isoDepth } from '../utils/isomath.js';
+import { SoundFX } from '../effects/SoundFX.js';
 
 export class Cheems extends Phaser.GameObjects.Container {
   constructor(scene, col, row, originX, originY, getBlocks) {
@@ -52,6 +53,7 @@ export class Cheems extends Phaser.GameObjects.Container {
     if (this._getBlocks().some(b => b.col === newCol && b.row === newRow)) return;
     this.col = newCol;
     this.row = newRow;
+    SoundFX.step();
     if (dc !== 0) this._sprite.setFlipX(dc < 0);
     const { x, y } = tileToScreen(this.col, this.row, this._originX, this._originY);
     this.scene.tweens.add({ targets: this, x, y, duration: 80, ease: 'Power1' });

@@ -26,6 +26,12 @@ export class UIScene extends Phaser.Scene {
       color: '#aaaaaa', stroke: '#000', strokeThickness: 2,
     });
 
+    // — ×2 multiplier badge (next to score)
+    this._multiBadge = this.add.text(210, 20, '×2', {
+      fontFamily: 'Impact, sans-serif', fontSize: '20px',
+      color: '#00ccff', stroke: '#000', strokeThickness: 3,
+    }).setAlpha(0);
+
     // — Timer & best score (top-right)
     this._timerTxt = this.add.text(width - 16, 16, '60', {
       fontFamily: 'Impact, sans-serif', fontSize: '36px',
@@ -73,6 +79,12 @@ export class UIScene extends Phaser.Scene {
       fontFamily: 'Impact, sans-serif', fontSize: '80px',
       color: '#ffffff', stroke: '#000', strokeThickness: 7,
     }).setOrigin(0.5).setAlpha(0).setDepth(2800);
+
+    // — Wave clear celebration
+    this._waveClearTxt = this.add.text(width / 2, height / 2 + 50, 'WAVE CLEAR!', {
+      fontFamily: 'Impact, sans-serif', fontSize: '68px',
+      color: '#00ff88', stroke: '#000', strokeThickness: 6,
+    }).setOrigin(0.5).setAlpha(0).setDepth(2700);
 
     // — Combo text
     this._comboTxt = this.add.text(width / 2, height / 2 - 120, '', {
@@ -135,6 +147,30 @@ export class UIScene extends Phaser.Scene {
       this.tweens.add({ targets: this._dogeBanner, alpha: 0, duration: 2000, delay: 1000 });
     });
     game.events.on('combo', combo => this._showCombo(combo));
+    game.events.on('waveClear', () => this._showWaveClear());
+    game.events.on('multiplierActive', durationMs => {
+      this.tweens.killTweensOf(this._multiBadge);
+      this._multiBadge.setAlpha(1).setScale(1);
+      this.tweens.add({
+        targets: this._multiBadge, scale: 1.2, duration: 300,
+        yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      this.time.delayedCall(durationMs, () => {
+        this.tweens.killTweensOf(this._multiBadge);
+        this.tweens.add({ targets: this._multiBadge, alpha: 0, duration: 400 });
+      });
+    });
+  }
+
+  _showWaveClear() {
+    this.tweens.killTweensOf(this._waveClearTxt);
+    this._waveClearTxt.setAlpha(1).setScale(0.5);
+    this.tweens.add({
+      targets: this._waveClearTxt, scale: 1.1, duration: 250, ease: 'Back.easeOut',
+      onComplete: () => {
+        this.tweens.add({ targets: this._waveClearTxt, alpha: 0, scale: 1.3, duration: 600, delay: 400 });
+      },
+    });
   }
 
   _showWaveBanner(text) {
