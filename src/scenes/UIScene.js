@@ -10,6 +10,7 @@ export class UIScene extends Phaser.Scene {
 
   create() {
     const game = this.scene.get('Game');
+    this._game = game;
     const { width, height } = this.scale;
 
     // — Score & wave info (top-left)
@@ -121,9 +122,14 @@ export class UIScene extends Phaser.Scene {
     this._paused = false;
     this._newBestShown = false;
     this._lastTimerCeil = null;
+    this._joyDc = 0;
+    this._joyDr = 0;
+    this._lastJoyMove = 0;
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    this._buildControlsPanel();
+    const isMobile = this.sys.game.device.input.touch;
+    if (!isMobile) this._buildControlsPanel();
+    if (isMobile)  this._buildMobileControls();
 
     // — Event listeners
     game.events.on('scoreChanged', score => {
@@ -193,6 +199,136 @@ export class UIScene extends Phaser.Scene {
         this.tweens.killTweensOf(this._multiBadge);
         this.tweens.add({ targets: this._multiBadge, alpha: 0, duration: 400 });
       });
+    });
+  }
+
+  _buildMobileControls() {
+    const { width, height } = this.scale;
+    const game = this._game;
+    this.input.addPointer(3);
+
+    // ── Joystick ─────────────────────────────────────────────────────────────
+    const joyX = 140, joyY = height - 140;
+    const baseR = 72, thumbR = 32, deadZ = 18;
+
+    const joyGfx = this.add.graphics().setDepth(200).setAlpha(0.85);
+    const drawJoy = (tx = 0, ty = 0) => {
+      joyGfx.clear();
+      joyGfx.fillStyle(0x1a1a3a, 0.55);
+      joyGfx.fillCircle(joyX, joyY, baseR);
+      joyGfx.lineStyle(2, 0x7777cc, 0.7);
+      joyGfx.strokeCircle(joyX, joyY, baseR);
+      // cardinal ticks
+      [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dx,dy]) => {
+        const tx2 = joyX + dx * (baseR - 12), ty2 = joyY + dy * (baseR - 12);
+        joyGfx.fillStyle(0x9999dd, 0.5);
+        joyGfx.fillCircle(tx2, ty2, 4);
+      });
+      joyGfx.fillStyle(0x6666bb, 0.9);
+      joyGfx.fillCircle(joyX + tx, joyY + ty, thumbR);
+      joyGfx.lineStyle(2, 0xbbbbff, 1);
+      joyGfx.strokeCircle(joyX + tx, joyY + ty, thumbR);
+    };
+    drawJoy();
+
+    this._joyPointer = null;
+    const updateJoy = ptr => {
+      const dx = ptr.x - joyX, dy = ptr.y - joyY;
+      const dist = Math.hypot(dx, dy);
+      if (dist < deadZ) { this._joyDc = 0; this._joyDr = 0; drawJoy(); return; }
+      const angle = Math.atan2(dy, dx);
+      const clamp = Math.min(dist, baseR - 10);
+      drawJoy(Math.cos(angle) * clamp, Math.sin(angle) * clamp);
+      const deg = ((angle * 180 / Math.PI) + 360) % 360;
+      if      (deg >= 315 || deg <  45) { this._joyDc =  1; this._joyDr =  0; }
+      else if (deg >=  45 && deg < 135) { this._joyDc =  0; this._joyDr =  1; }
+      else if (deg >= 135 && deg < 225) { this._joyDc = -1; this._joyDr =  0; }
+      else                               { this._joyDc =  0; this._joyDr = -1; }
+      // Fire first move immediately for responsiveness
+      if (this._joyDc !== 0 || this._joyDr !== 0) {
+        const now = this.time.now;
+        if (now - this._lastJoyMove > 165) {
+          this._lastJoyMove = now;
+          game.events.emit('vjoyMove', { dc: this._joyDc, dr: this._joyDr });
+        }
+      }
+    };
+
+    // ── Action buttons ────────────────────────────────────────────────────────
+    const bonkX = width - 88,  bonkY = height - 120;
+    const chainX = width - 200, chainY = height - 110;
+    const powerX = width - 128, powerY = height - 245;
+
+    const btnGfx = this.add.graphics().setDepth(200);
+    const drawBtns = (bonkP = false, chainP = false, powerP = false) => {
+      btnGfx.clear();
+      // BONK
+      btnGfx.fillStyle(bonkP ? 0xff8866 : 0xbb1100, 0.88);
+      btnGfx.fillCircle(bonkX, bonkY, 54);
+      btnGfx.lineStyle(2, 0xff6644, 1);
+      btnGfx.strokeCircle(bonkX, bonkY, 54);
+      // CHAIN
+      btnGfx.fillStyle(chainP ? 0x66aaff : 0x0044aa, 0.82);
+      btnGfx.fillCircle(chainX, chainY, 38);
+      btnGfx.lineStyle(2, 0x4488ff, 1);
+      btnGfx.strokeCircle(chainX, chainY, 38);
+      // POWER
+      btnGfx.fillStyle(powerP ? 0xffcc44 : 0xaa5500, 0.82);
+      btnGfx.fillCircle(powerX, powerY, 38);
+      btnGfx.lineStyle(2, 0xff9922, 1);
+      btnGfx.strokeCircle(powerX, powerY, 38);
+    };
+    drawBtns();
+
+    const bTxt = { fontFamily: 'Impact, sans-serif', stroke: '#000', strokeThickness: 3 };
+    this.add.text(bonkX,  bonkY,  'BONK',  { ...bTxt, fontSize: '17px', color: '#ffffff' }).setOrigin(0.5).setDepth(201);
+    this.add.text(chainX, chainY, 'Q\nchain\n40⚡', { ...bTxt, fontSize: '11px', color: '#aaddff', align: 'center' }).setOrigin(0.5).setDepth(201);
+    this.add.text(powerX, powerY, 'E hold\npower\n80⚡',  { ...bTxt, fontSize: '11px', color: '#ffdd88', align: 'center' }).setOrigin(0.5).setDepth(201);
+
+    // Pausa button (top-center, no ESC key on mobile)
+    const pBtn = this.add.text(width / 2, 6, '⏸ PAUSA', {
+      fontFamily: 'Impact, sans-serif', fontSize: '16px',
+      color: '#aaaaaa', stroke: '#000', strokeThickness: 2,
+      backgroundColor: '#00000066', padding: { x: 10, y: 4 },
+    }).setOrigin(0.5, 0).setDepth(201).setInteractive();
+    pBtn.on('pointerdown', () => this._togglePause());
+
+    // ── Unified pointer handlers ──────────────────────────────────────────────
+    this._powerPtr = null;
+
+    this.input.on('pointerdown', ptr => {
+      if (this._paused) return;
+      // Joystick?
+      if (!this._joyPointer && Phaser.Math.Distance.Between(ptr.x, ptr.y, joyX, joyY) < baseR + 24) {
+        this._joyPointer = ptr; updateJoy(ptr); return;
+      }
+      // BONK?
+      if (Phaser.Math.Distance.Between(ptr.x, ptr.y, bonkX, bonkY) < 64) {
+        drawBtns(true); game.events.emit('vjoyBonk'); return;
+      }
+      // CHAIN?
+      if (Phaser.Math.Distance.Between(ptr.x, ptr.y, chainX, chainY) < 48) {
+        drawBtns(false, true); game.events.emit('vjoyChain'); return;
+      }
+      // POWER?
+      if (Phaser.Math.Distance.Between(ptr.x, ptr.y, powerX, powerY) < 48) {
+        this._powerPtr = ptr; drawBtns(false, false, true);
+        game.events.emit('vjoyPowerStart'); return;
+      }
+    });
+
+    this.input.on('pointermove', ptr => {
+      if (ptr === this._joyPointer) updateJoy(ptr);
+    });
+
+    this.input.on('pointerup', ptr => {
+      if (ptr === this._joyPointer) {
+        this._joyPointer = null; this._joyDc = 0; this._joyDr = 0; drawJoy();
+      } else if (ptr === this._powerPtr) {
+        this._powerPtr = null; drawBtns(); game.events.emit('vjoyPowerEnd');
+      } else {
+        drawBtns();
+      }
     });
   }
 
@@ -346,6 +482,10 @@ export class UIScene extends Phaser.Scene {
     if (!this._paused && this._isCharging) {
       const w = Math.min(this._barW, (this._chargeBar.width || 0) + delta * (this._barW / 1500));
       this._chargeBar.setSize(w, 8);
+    }
+    if (!this._paused && (this._joyDc !== 0 || this._joyDr !== 0) && time - this._lastJoyMove > 165) {
+      this._lastJoyMove = time;
+      this._game.events.emit('vjoyMove', { dc: this._joyDc, dr: this._joyDr });
     }
   }
 }

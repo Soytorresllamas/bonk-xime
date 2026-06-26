@@ -59,6 +59,39 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('energyChanged', this._energy.fraction);
     this.events.emit('scoreChanged', this._score.score);
     this.events.emit('blocksChanged', this._blocks.length);
+
+    // Virtual joystick / touch button handlers
+    this.events.on('vjoyMove', ({ dc, dr }) => {
+      if (this._cheems && !this._waveClear) this._cheems._tryMove(dc, dr);
+    });
+    this.events.on('vjoyBonk', () => {
+      if (!this._waveClear) this._handleBonkKey();
+    });
+    this.events.on('vjoyChain', () => {
+      if (this._waveClear) return;
+      if (this._energy.spend(CHAIN_COST)) {
+        this._executeChainBonk();
+        this.events.emit('energyChanged', this._energy.fraction);
+      } else { SoundFX.noEnergy(); this.events.emit('noEnergy'); }
+    });
+    this.events.on('vjoyPowerStart', () => {
+      if (this._waveClear || this._charging) return;
+      if (this._energy.canAfford(POWER_COST)) {
+        this._charging = true;
+        this._chargeStartTime = this.time.now;
+        this.events.emit('charging', true);
+      } else { SoundFX.noEnergy(); this.events.emit('noEnergy'); }
+    });
+    this.events.on('vjoyPowerEnd', () => {
+      if (!this._charging) return;
+      this._charging = false;
+      this.events.emit('charging', false);
+      const elapsed = this.time.now - this._chargeStartTime;
+      if (elapsed >= 1500 && this._energy.spend(POWER_COST)) {
+        this._executePowerBonk();
+        this.events.emit('energyChanged', this._energy.fraction);
+      }
+    });
   }
 
   _drawBackground() {
