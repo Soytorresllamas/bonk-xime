@@ -55,7 +55,7 @@ export class MenuScene extends Phaser.Scene {
     }
 
     const btnLabel = isGameOver ? 'BONK AGAIN' : 'SUCH START';
-    const btn = this.add.text(width / 2, height - 60, btnLabel, {
+    const btn = this.add.text(width / 2, height - 128, btnLabel, {
       fontFamily: 'Impact, Arial Black, sans-serif',
       fontSize: '32px', color: '#ffffff',
       stroke: '#000', strokeThickness: 4,
@@ -71,15 +71,18 @@ export class MenuScene extends Phaser.Scene {
       this.scene.launch('UI');
     });
 
-    const instrStyle = {
-      fontFamily: 'Impact, Arial Black, sans-serif',
-      fontSize: '14px', color: '#aaaaaa',
-      stroke: '#000', strokeThickness: 2,
-      align: 'center',
-    };
-
-    this.add.text(width / 2, height - 22,
-      'WASD mover  ·  K bonk  ·  Q chain bonk (40⚡)  ·  mantén E power bonk (80⚡)',
-      instrStyle).setOrigin(0.5, 1);
+    // — Controls panel
+    const panelStyle = { fontFamily: 'Impact, Arial Black, sans-serif', stroke: '#000', strokeThickness: 2, align: 'center' };
+    this.add.rectangle(width / 2, height - 48, width - 24, 80, 0x000000, 0.72).setOrigin(0.5, 0.5);
+    this.add.text(width / 2, height - 86, 'CÓMO JUGAR', { ...panelStyle, fontSize: '13px', color: '#FFD700' }).setOrigin(0.5, 0);
+    this.add.text(width / 2, height - 70,
+      'WASD mover   ·   K bonk   ·   Q chain bonk (40⚡)   ·   ESC pausa',
+      { ...panelStyle, fontSize: '15px', color: '#ffffff' }).setOrigin(0.5, 0);
+    this.add.text(width / 2, height - 46,
+      'mantén E (1.5 s) → power bonk (80⚡)   ·   golpear bloques recarga energía ⚡',
+      { ...panelStyle, fontSize: '13px', color: '#aaaaaa' }).setOrigin(0.5, 0);
+    this.add.text(width / 2, height - 24,
+      '🪨 stone HP×2  ⚙️ iron HP×3  💎 diamond HP×5 (×2 score)  🐕 doge +energía  ⚠️ trap −2s',
+      { ...panelStyle, fontSize: '12px', color: '#888888' }).setOrigin(0.5, 0);
   }
 }

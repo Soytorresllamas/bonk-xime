@@ -109,7 +109,14 @@ export class UIScene extends Phaser.Scene {
       fontFamily: 'Impact, sans-serif', fontSize: '22px',
       color: '#ffffff', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
-    this._pauseOverlay.add([pauseBg, pauseTxt, pauseHint]);
+    const ctrlStyle = { fontFamily: 'Impact, sans-serif', stroke: '#000', strokeThickness: 2, align: 'center' };
+    const pauseCtrl1 = this.add.text(width / 2, height / 2 + 110,
+      'WASD mover   ·   K bonk   ·   Q chain bonk (40⚡)   ·   ESC pausa',
+      { ...ctrlStyle, fontSize: '16px', color: '#dddddd' }).setOrigin(0.5);
+    const pauseCtrl2 = this.add.text(width / 2, height / 2 + 138,
+      'mantén E (1.5 s) → power bonk (80⚡)   ·   golpear bloques recarga energía ⚡',
+      { ...ctrlStyle, fontSize: '14px', color: '#999999' }).setOrigin(0.5);
+    this._pauseOverlay.add([pauseBg, pauseTxt, pauseHint, pauseCtrl1, pauseCtrl2]);
 
     this._paused = false;
     this._newBestShown = false;
