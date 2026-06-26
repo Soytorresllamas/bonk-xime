@@ -123,6 +123,8 @@ export class UIScene extends Phaser.Scene {
     this._lastTimerCeil = null;
     this._escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
+    this._buildControlsPanel();
+
     // — Event listeners
     game.events.on('scoreChanged', score => {
       this._scoreTxt.setText(`SCORE: ${score.toLocaleString()}`);
@@ -192,6 +194,87 @@ export class UIScene extends Phaser.Scene {
         this.tweens.add({ targets: this._multiBadge, alpha: 0, duration: 400 });
       });
     });
+  }
+
+  _buildControlsPanel() {
+    const px = 10, py = 202;
+    const kw = 26, kh = 26, g = 3;
+    const pad = 14;
+    const ax = px + pad;           // A / ESC left edge
+    const sx = ax + kw + g;        // S / W / K / Q / E center col
+    const dx = sx + kw + g;        // D right col
+    const escW = dx + kw - ax;     // ESC key width = span of A-S-D
+    const descX = dx + kw + 8;     // description text left edge
+    const pw = descX + 50 - px;    // panel width
+
+    const gfx = this.add.graphics().setDepth(50);
+
+    // Panel background + border
+    gfx.fillStyle(0x050512, 0.86);
+    gfx.fillRoundedRect(px, py, pw, 268, 8);
+    gfx.lineStyle(1, 0x44449a, 0.8);
+    gfx.strokeRoundedRect(px, py, pw, 268, 8);
+
+    const drawKey = (kx, ky, w = kw, h = kh) => {
+      gfx.fillStyle(0x040410, 1);
+      gfx.fillRoundedRect(kx + 2, ky + 3, w, h, 4);     // shadow
+      gfx.fillStyle(0x252548, 1);
+      gfx.fillRoundedRect(kx, ky, w, h, 4);              // body
+      gfx.fillStyle(0x6666aa, 0.35);
+      gfx.fillRoundedRect(kx + 1, ky + 1, w - 2, 5,     // top highlight
+        { tl: 3, tr: 3, bl: 0, br: 0 });
+      gfx.lineStyle(1, 0x9999dd, 1);
+      gfx.strokeRoundedRect(kx, ky, w, h, 4);            // border
+    };
+
+    const K = (x, y, label, w = kw) => {
+      drawKey(x, y, w);
+      this.add.text(x + w / 2, y + kh / 2, label, {
+        fontFamily: 'Arial Black, Arial, sans-serif', fontSize: '13px',
+        color: '#eeeeff', stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(51);
+    };
+
+    const L = (x, y, label, color = '#cccccc', size = '13px', ox = 0, oy = 0.5) =>
+      this.add.text(x, y, label, {
+        fontFamily: 'Impact, sans-serif', fontSize: size,
+        color, stroke: '#000', strokeThickness: 2,
+      }).setOrigin(ox, oy).setDepth(51);
+
+    // Header
+    L(px + pw / 2, py + 11, 'CONTROLES', '#8888cc', '11px', 0.5, 0.5);
+    gfx.lineStyle(1, 0x33338a, 0.6);
+    gfx.lineBetween(px + 6, py + 22, px + pw - 6, py + 22);
+
+    // — WASD —
+    let ry = py + 30;
+    K(sx, ry, 'W');
+    ry += kh + g;
+    K(ax, ry, 'A'); K(sx, ry, 'S'); K(dx, ry, 'D');
+    L(descX, ry + kh / 2, 'mover');
+
+    // — K bonk —
+    ry += kh + 14;
+    K(sx, ry, 'K');
+    L(descX, ry + kh / 2, 'bonk');
+
+    // — Q chain —
+    ry += kh + 12;
+    K(sx, ry, 'Q');
+    L(descX, ry + kh / 2 - 7, 'chain');
+    L(descX, ry + kh / 2 + 8, '40 ⚡', '#7777bb', '11px');
+
+    // — E hold power —
+    ry += kh + 16;
+    K(sx, ry, 'E');
+    L(sx + kw + 3, ry + kh - 4, 'hold', '#666688', '10px');
+    L(descX, ry + kh / 2 - 7, 'power');
+    L(descX, ry + kh / 2 + 8, '80 ⚡', '#7777bb', '11px');
+
+    // — ESC pausa —
+    ry += kh + 16;
+    K(ax, ry, 'ESC', escW);
+    L(descX, ry + kh / 2, 'pausa');
   }
 
   _showNewBest() {
